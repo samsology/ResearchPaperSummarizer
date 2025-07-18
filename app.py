@@ -1,25 +1,30 @@
-# app.py
-
 import streamlit as st
-import pandas as pd
+from summarize import load_abstracts, summarize_by_pmid
 
-st.set_page_config(page_title="PubMed Abstract Summarizer", layout="wide")
-st.title("🧠 PubMed Abstract Summarizer")
+st.set_page_config(page_title="Research Paper Summarizer", layout="centered")
 
-# Load the summaries file
-df = pd.read_csv("summaries.csv")
+st.title("🧠 Research Paper Summarizer")
+st.write("Enter a **PubMed ID** to generate a summary of its abstract.")
 
-search_term = st.sidebar.text_input("🔍 Search keyword in summaries")
+# Load abstracts (cached)
+@st.cache_data
+def load_data():
+    return load_abstracts("papers.txt")
 
-if search_term:
-    results = df[df["Summary"].str.contains(search_term, case=False)]
-else:
-    results = df
+df = load_data()
 
-st.write(f"### Showing {len(results)} summaries")
+# Input field
+pmid = st.text_input("🔍 PubMed ID:", "")
 
-for _, row in results.iterrows():
-    with st.expander(f"PMID {row['PMID']}"):
-        st.markdown(f"**🔬 Summary:** {row['Summary']}")
-        if st.checkbox("Show original abstract", key=row['PMID']):
-            st.text(row['Abstract'])
+if st.button("Summarize"):
+    if pmid:
+        with st.spinner("Generating summary..."):
+            summary = summarize_by_pmid(df, pmid.strip())
+            if summary:
+                st.success("✅ Summary generated!")
+                st.markdown(f"**Summary of PubMed ID {pmid}:**")
+                st.write(summary)
+            else:
+                st.error(f"❌ No abstract found for PubMed ID: {pmid}")
+    else:
+        st.warning("Please enter a valid PubMed ID.")
