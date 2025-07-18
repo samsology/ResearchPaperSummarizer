@@ -1,37 +1,25 @@
+# app.py
+
 import streamlit as st
 import pandas as pd
 
-# App Title
-st.title("PubMed Abstract Summarizer")
-st.write("🔍 Search and summarize biomedical abstracts by PubMed ID")
+st.set_page_config(page_title="PubMed Abstract Summarizer", layout="wide")
+st.title("🧠 PubMed Abstract Summarizer")
 
-# Upload CSV file
-uploaded_file = st.file_uploader("Upload your summaries.csv file", type=["csv"])
+# Load the summaries file
+df = pd.read_csv("summaries.csv")
 
-if uploaded_file:
-    # Load the data
-    df = pd.read_csv(uploaded_file)
+search_term = st.sidebar.text_input("🔍 Search keyword in summaries")
 
-    # User input for PubMed ID search
-    pubmed_id = st.text_input("Enter PubMed ID")
+if search_term:
+    results = df[df["Summary"].str.contains(search_term, case=False)]
+else:
+    results = df
 
-    if pubmed_id:
-        result = df[df['ID'].astype(str).str.strip() == pubmed_id.strip()]
-        
-        if not result.empty:
-            for _, row in result.iterrows():
-                st.subheader("🧾 Original Abstract")
-                st.write(row['BG'])
+st.write(f"### Showing {len(results)} summaries")
 
-                st.subheader("🧠 AI Summary")
-                st.success(row['Summary'])
-        else:
-            st.warning("❌ No abstract found for this PubMed ID.")
-
-    # Optional: display the full dataset
-    if st.checkbox("Show full dataset"):
-        st.dataframe(df)
-
-# Footer
-st.markdown("---")
-st.markdown("Built by Samuel Johnson | 3MTT Kaduna | Data Analytics Track")
+for _, row in results.iterrows():
+    with st.expander(f"PMID {row['PMID']}"):
+        st.markdown(f"**🔬 Summary:** {row['Summary']}")
+        if st.checkbox("Show original abstract", key=row['PMID']):
+            st.text(row['Abstract'])
